@@ -19,6 +19,8 @@
 // https://github.com/jamessynge/EthernetBonjour
 #include <EthernetBonjour.h>
 
+#include "SparkFunMLX90614.h"
+
 // TODO Look into moving my helpers into a library directory, and symlinking the
 // library directory into the sketch directory. That will make sharing the
 // files easier.
@@ -26,6 +28,9 @@
 
 // Pin hooked up to the RG-11 rain sensor's relay.
 constexpr int kRelayInputPin = 7;
+
+// Class instance for reading from the attached MLX90614 IR Sensor.
+IRTherm irTherm;
 
 // Name we'll advertise using mDNS (Apple's Bonjour protocol).
 const char kMulticastDnsName[] = "rainsensor";
@@ -41,10 +46,18 @@ void setup() {
   // to INPUT_PULLUP.
   pinMode(kRelayInputPin, INPUT);
 
+  // Start talking to the IR sensor.
+  irTherm.begin();
+  irTherm.setUnit(TEMP_F);
+  if (irTherm.read() != 1) {
+    Serial.println("MLX90614 not found");
+  }
+
   // As described on the freetronics website, there is a delay between the reset
   // of the EtherTen board and the time when the Ethernet chip is allowed to
-  // operate. Do some other stuff first so that we don't try initializing the
-  // Ethernet chip too soon.
+  // operate. So we do some other stuff first (above), then delay a bit longer
+  // just to be sure that we don't attempt to initialize the Ethernet chip too
+  // soon. Waiting a few 100ms will not be a big deal in the life of the unit.
   //
   //       https://www.freetronics.com.au/pages/usb-power-and-reset
   delay(200);
@@ -66,10 +79,6 @@ void setup() {
 void clientHandler(EthernetClient* client) {
   Serial.println("Got a client!!");
 
-  // Place holder's for reading the real values.
-  float objectC = 1;
-  float ambientC = 20;
-
   // Skip the request header, i.e. we give the same result regardless of the
   // request, so really not much of a webserver!
   server.skipHttpRequestHeader(client);
@@ -81,10 +90,18 @@ void clientHandler(EthernetClient* client) {
 
   client->print("{\"relay\":");
   client->print((digitalRead(kRelayInputPin) == LOW) ? 0 : 1);
-  client->print(", \"objectC\":");
-  client->print(objectC);
-  client->print(", \"ambientC\":");
-  client->print(ambientC);
+
+  // On average it takes just over one millisecond to read from the IR sensor,
+  // so there is no need to do so periodically, (i.e. between client requests,
+  // with caching of the results). So we just try to read and return the
+  // results if we get them.
+  if (irTherm.read() == 1) {
+    client->print(", \"object\":");
+    client->print(irTherm.object());
+    client->print(", \"ambient\":");
+    client->print(irTherm.ambient());
+  }
+
   client->println("}");
   client->println();
 }
@@ -94,6 +111,8 @@ void loop() {
   // often in order for the mDNS feature to work, ideally once per loop.
   EthernetBonjour.run();
 
+  // If there is a client, pass it to clientHandler;
+  // also maintain our DHCP lease.
   server.loop(clientHandler);
 }
 
