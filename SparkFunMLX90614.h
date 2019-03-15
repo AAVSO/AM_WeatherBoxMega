@@ -1,1 +1,0 @@
-../Libraries/SparkFun_MLX90614_Arduino/src/SparkFunMLX90614.h

@@ -47,6 +47,7 @@ bool SimpleHttpServer::setup(uint8_t oui_prefix[3]) {
       // Oops, this isn't the right board to run this sketch.
       return false;
     }
+    Serial.println("No DHCP");
 
     // No DHCP server responded with a lease on an IP address, so we'll
     // fallback to using our randomly generated IP.
