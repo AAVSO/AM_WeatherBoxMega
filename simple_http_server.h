@@ -2,6 +2,7 @@
 #define _JAMESSYNGE_ARDUINO_EXPERIMENTS_SIMPLE_HTTP_SERVER_H_
 
 #include "Ethernet.h"
+#include "addresses.h"
 
 // Some chip select pin numbers:
 constexpr int kEthernetShieldCS = 10;    // Most Arduino shields
@@ -23,7 +24,10 @@ public:
   // Setup the Ethernet chip and start listening for connections. Returns false
   // if unable to configure addresses or if there is no Ethernet hardware, else
   // returns true.
-  bool setup(uint8_t oui_prefix[3]);
+  // It *MAY* help you identify devices on your network as using this software
+  // if they have the same "Organizationally Unique Identifier" (the first 3
+  // bytes of the MAC address).
+  bool setup(const OuiPrefix* oui_prefix=nullptr);
 
   // Check for a new client connection, and if found pass it to handler.
   // Also ensures that the DHCP lease (if there is one) is maintained.

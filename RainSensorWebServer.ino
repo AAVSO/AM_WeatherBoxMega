@@ -158,6 +158,12 @@
 // My wrapper class for simplifying dealing with the Ethernet library.
 #include "simple_http_server.h"
 
+// Provides the seed for the standard random number generator.
+#include "jitter_random.h"
+
+// Generates, stores and loads MAC and IP address for the sketch.
+#include "addresses.h"
+
 // Pin hooked up to the RG-11 rain sensor's relay.
 constexpr int kRelayInputPin = 7;
 
@@ -168,7 +174,7 @@ IRTherm irTherm;
 const char kMulticastDnsName[] = "rainsensor";
 
 // Tell the Ethernet library to talk to the Ethernet chip using the
-// appropriate chip select pin, and listen on port 80 for HTTP connections.
+// appropriate chip select pin, and to listen on port 80 for TCP connections.
 SimpleHttpServer server(kEthernetShieldCS, 80);
 
 void setup() {
@@ -185,6 +191,21 @@ void setup() {
     Serial.println("MLX90614 not found");
   }
 
+  // Initialize the random number generator, just in case we need it for
+  // generating addresses when we call SimpleHttpServer::setup.
+  // Serial.print("Calling JitterRandom at ");
+  // Serial.println(millis());
+  auto seed = JitterRandom::random32();
+  // Serial.print("JitterRandom returned at ");
+  // Serial.println(millis());
+  // Serial.print("seed=");
+  // Serial.print(seed);
+  // Serial.print(" (0x");
+  // Serial.print(seed, HEX);
+  // Serial.println(")");
+
+  randomSeed(seed);
+
   // As described on the freetronics website, there is a delay between the reset
   // of the EtherTen board and the time when the Ethernet chip is allowed to
   // operate. So we do some other stuff first (above), then delay a bit longer
@@ -197,9 +218,10 @@ void setup() {
   // Initialize networking. Provide an "Organizationally Unique Identifier"
   // that will be the first 3 bytes of the MAC addresses generated; this means
   // that all boards running this sketch will share the first 3 bytes of their
-  // MAC addresses. Note that SimpleHttpServer will clear a couple of 
-  uint8_t oui_prefix[3] = {0x52, 0xC4, 0x55};
-  if (!server.setup(oui_prefix)) {
+  // MAC addresses, which may help with locating them... though EthernetBonjour
+  // (mDNS) is our primary way of doing so.
+  OuiPrefix oui_prefix(0x52, 0xC4, 0x55);
+  if (!server.setup(&oui_prefix)) {
     announceFailure("Unable to initialize networking!");
   }
 

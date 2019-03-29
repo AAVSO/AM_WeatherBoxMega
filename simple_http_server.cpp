@@ -1,7 +1,6 @@
 #include "simple_http_server.h"
 
 #include "addresses.h"
-#include "analog_random.h"
 #include "eeprom_io.h"
 
 
@@ -15,29 +14,21 @@ SimpleHttpServer::SimpleHttpServer(int chip_select_pin, int port)
   Ethernet.init(chip_select_pin);
 }
 
-bool SimpleHttpServer::setup(uint8_t oui_prefix[3]) {
+bool SimpleHttpServer::setup(const OuiPrefix* oui_prefix) {
   // Load the addresses saved to EEPROM, if they were previously saved. If they
   // were not successfully loaded, then generate them.
   Addresses addresses;
-  if (!addresses.load()) {
-    if (!addresses.generateAddresses()) {
-      return false;
-    }
-    // It *MAY* help you identify devices on your network as using this software
-    // if they have the same "Organizationally Unique Identifier" (the first 3
-    // bytes of the MAC address). Let's do that here, using values provided by
-    // the caller.
-    addresses.mac[0] = oui_prefix[0];
-    addresses.mac[1] = oui_prefix[1];
-    addresses.mac[2] = oui_prefix[2];
-    addresses.save();
+  if (!addresses.loadOrGenAndSave(oui_prefix)) {
+    // Whoops!
+    return false;
   }
 
   Serial.print("MAC: ");
-  printMACAddress(addresses.mac);
-  Serial.println();
+  Serial.println(addresses.mac);
+  Serial.print("Default IP: ");
+  Serial.println(addresses.ip);
 
-  if (Ethernet.begin(addresses.mac)) {
+  if (Ethernet.begin(addresses.mac.mac)) {
     // Yeah, we were able to get an IP address via DHCP.
     using_dhcp_ = true;
   } else {
