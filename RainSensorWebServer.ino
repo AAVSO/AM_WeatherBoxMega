@@ -165,7 +165,7 @@
 #include "addresses.h"
 
 // Pin hooked up to the RG-11 rain sensor's relay.
-constexpr int kRelayInputPin = 7;
+constexpr int kRelayInputPin = 47;
 
 // Class instance for reading from the attached MLX90614 IR Sensor.
 IRTherm irTherm;
@@ -180,9 +180,7 @@ SimpleHttpServer server(kEthernetShieldCS, 80);
 void setup() {
   Serial.begin(9600);
 
-  // We've got our own external pullup resistor, so not setting this
-  // to INPUT_PULLUP.
-  pinMode(kRelayInputPin, INPUT);
+  pinMode(kRelayInputPin, INPUT_PULLUP); // internal input is adequate; lose the external pullup circuit
 
   // Start talking to the IR sensor.
   irTherm.begin();
@@ -214,6 +212,8 @@ void setup() {
   // To learn more, see:
   //       https://www.freetronics.com.au/pages/usb-power-and-reset
   delay(200);
+  
+  pinMode(7, INPUT_PULLUP); // ethernet needs this
 
   // Initialize networking. Provide an "Organizationally Unique Identifier"
   // that will be the first 3 bytes of the MAC addresses generated; this means
