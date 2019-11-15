@@ -54,7 +54,7 @@ ISR(WDT_vect)
 
 }  // namespace
 
-uint32_t JitterRandom::random32(int num_register_reads=32)
+uint32_t JitterRandom::random32(int num_register_reads /*=32*/)
 {
   rand_accumulator = 0;
 
