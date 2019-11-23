@@ -24,9 +24,9 @@ Narrative:
 - The rain sensor needs 12V. For that we need a step up regulator from the nominal 9V of the POE.
 - wiring notes ( these supercede any images and drawings you might find.
    - Rain sensor. 
-       dip switches set for "It's Raining":  5 on for rain gauge, 1,2 off for high sensitivity, 3 on for 15 min hysteresis
-       12V comes off the step up regulator
-       relay output to arduino pin 47. No need for external pullup; internal is set and is adequate
+       - dip switches set for "It's Raining":  5 on for rain gauge, 1,2 off for high sensitivity, 3 on for 15 min hysteresis
+       - 12V comes off the step up regulator
+       - relay output to arduino pin 47. No need for external pullup; internal is set and is adequate
    -
 - monitor script
    - The goal is to access the weather box and decide if its safe to be open and make that information available to ACP
