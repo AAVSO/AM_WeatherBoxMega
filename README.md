@@ -1,8 +1,7 @@
 # AM_WeatherBox
 Astro Makers project to make a weather monitor box for and observatory
 
-
-Welcome to the plans and instructions for the Alan Sliski and Son Weather Box
+Designed by Alan Sliski and Aaron Sliski. Other contributers: James Synge, George Silvis
 
 The goal is to create an inexpensive device for weather monitoring at a telescope site/observatory. It features:
   - Just two onboard sensors: rain detector and sky/cloud monitor. These are the most important sensors for making 
@@ -14,7 +13,6 @@ The goal is to create an inexpensive device for weather monitoring at a telescop
 
 Documentation is this readme and the files in the Documentation folder.
 
-Narrative:
 - Some pictures of the device: picxxxx.png
 - The weather box excel spread sheet has the BOM and two drawings.
 - Processor: Arduino Mega + Ethernet shiedl + POE
