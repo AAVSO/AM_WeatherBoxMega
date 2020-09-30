@@ -1,0 +1,37 @@
+
+
+20200908
+current board doc:
+https://robotdyn.com/mega-2560-eth-r3-with-poe-atmega2560-w5500-micro-sd-card-reader-usb-uart-cp2104-225db671-8d99-11e8-9100-901b0ebb3621.html
+
+
+First Beta ran for 10 months.
+looks like board power supply failed.
+   - won't light up with ethernet/POE cables, though cables checkout
+   - power via usb shows 2.7V on the 5V pin, 1.6V on the 3.3V pin
+       - serial port will not stay up.
+       
+- wiring notes, different from the schematic:
+   skysensor:
+   Vin    red
+   Gnd    blk
+   SCL    blue   goto pin 44
+   SDA    white  goto pin 43
+      note this is the alternate I2C interface
+      the primary pins were physically blocked 
+      
+   rain sensor
+     brn  to gnd
+     blu  to 47   sense line
+     grn  out-
+     yel  out+
+     
+Voltage plan:
+  48V --(via ethernet)--(POE/megaboard)-- Vin is 9V  --- bump up board--  12V to rainsensor          
+                              |                         
+                              |-- 5V -- to sky sensor
+  The problem is that the board needs to come with a heat sink for its voltage adapter.
+      This is probably what failed.
+      
+RG-11 rainsensor setup
+   switch settings...                                                 

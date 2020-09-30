@@ -12,21 +12,45 @@ from pathlib import Path
 # location is SGEO's home on Mashnee 
 latitude= "41.717"
 longitude= "-70.633"
+
 # OpenWeather 
 url2="http://api.openweathermap.org/data/2.5/weather?lat="+latitude+"&lon="+longitude+"&units=imperial&appid=a93251af2c66650796d56b4246b9f1d1"
-rj = requests.request("GET", url2).json()
+# see below what it looks like
+owj = requests.request("GET", url2).json()
 # response is 200?
+
+# the weatherbox sensors
 wbj = requests.request("GET", "http://rainsensor.local").json()
-# dark sky
+
+# dark sky    will be kaput by 202007
 dsj = requests.request("GET", "https://api.darksky.net/forecast/a9222c59972f1c7cdaba8691ab92499a/"+latitude+","+longitude+"?exclude=minutely,hourly,daily").json()
 
+# Climacell 
+#  https://www.climacell.co/   George@GASilvis.net / nxw6dturn6KShzT
+ccj_API_KEY= d9FWl9c380rBqwiNXLLEbLIzxU021upJ
+# see example below    https://api.climacell.co/v3/weather/realtime/?lat=41.717&lon=-70.633&apikey=d9FWl9c380rBqwiNXLLEbLIzxU021upJ&unit_system=us&fields=temp,dewpoint,humidity,wind_speed,wind_direction,wind_gust,cloud_cover,weather_code,baro_pressure
+# also has sunrise,sunset      see    https://developer.climacell.co/v3/reference#data-layers-weather
+ccj= requests.request("GET", "https://api.climacell.co/v3/weather/realtime/?lat"+latitude+"&lon="+longitude+"&unit_system=us&apikey="+ccj_API_KEY+"&fields=temp,dewpoint,humidity,wind_speed,wind_direction,wind_gust,cloud_cover,weather_code,baro_pressure")
+ccd=[]
+ccd[temp]= ccj['temp']['value'] # "temp":{"value":72.5,"units":"F"},
+ccd['dewpoint']= ccj['dewpoint']['value'] # "dewpoint":{"value":69.13,"units":"F"},
+ccd['wind_speed']= ccj['wind_speed']['value'] # "wind_speed":{"value":11.88,"units":"mph"},
+ccd['wind_gust']= ccj['wind_gust']['value'] # "wind_gust":{"value":21.25,"units":"mph"},
+ccd['baro_pressure']= ccj['baro_pressure']['value'] # "baro_pressure":{"value":29.8124,"units":"inHg"},
+ccd['humidity']= ccj['humidity']['value'] # "humidity":{"value":89.06,"units":"%"},
+ccd['wind_direction']= ccj['wind_direction']['value'] # "wind_direction":{"value":213.69,"units":"degrees"},
+ccd['cloud_cover']= ccj['cloud_cover']['value'] # "cloud_cover":{"value":2.44,"units":"%"},
+ccd['weather_code']= ccj['weather_code']['value'] # "weather_code":{"value":"clear"},
+ccd['obs_time']= ccj['observation_time']['value'] # "observation_time":{"value":"2020-06-23T21:38:25.467Z"}}
 
-#Create one file per day. Days are DAYNITE, noon to noon
+
+
+#Create one file per day. Days are DATENITE, noon to noon
 
 dt_now= datetime.now() # local time
 local_hrs = dt_now.hour+ (dt_now.minute+ (dt_now.second/60))/60
-# how old is the rj data
-hrs_old= (dt_now.timestamp() - (rj['dt']))/3600
+# how old is the owj data
+hrs_old= (dt_now.timestamp() - (owj['dt']))/3600
 if local_hrs > 12:
     datenite= dt_now.date()
 else:    
@@ -34,10 +58,10 @@ else:
 
 
 s="{:f}".format(local_hrs)
-s+=",{:f}".format(hrs_old) # rj data is not realtime
-s+=",{}".format(rj['weather'][0]['id']) # 800 is clear
-s+=",{},{}".format(rj['main']['temp'], rj['main']['humidity']) # F, %
-s+=",{},{}".format(rj['wind']['speed'], rj['wind']['deg'] if 'deg' in rj['wind'] else 0 ) # mph, deg
+s+=",{:f}".format(hrs_old) # owj data is not realtime
+s+=",{}".format(owj['weather'][0]['id']) # 800 is clear
+s+=",{},{}".format(owj['main']['temp'], owj['main']['humidity']) # F, %
+s+=",{},{}".format(owj['wind']['speed'], owj['wind']['deg'] if 'deg' in owj['wind'] else 0 ) # mph, deg
 s+=",{},{},{}".format(wbj['object'], wbj['ambient'], wbj['relay']) # skytemp, air, relay
 # add dark sky data
 s+=",{:f}".format((dt_now.timestamp() - (dsj['currently']['time']))/3600) # age 
@@ -60,14 +84,14 @@ if os.path.exists(fname):
 else:
     f= open(fname, 'w') # make a new file if not
     # and add header info
-    t="Name: {}".format(rj['name'])
-    t+= ", Lat: {}, Lon:{}".format(rj['coord']['lat'], rj['coord']['lon'])
-    t+= ", timezone: {}".format(rj['timezone']/3600) # hrs
+    t="Name: {}".format(owj['name'])
+    t+= ", Lat: {}, Lon:{}".format(owj['coord']['lat'], owj['coord']['lon'])
+    t+= ", timezone: {}".format(owj['timezone']/3600) # hrs
     t+= ", dark sky nearest station: {}".format(dsj['flags']['source']['nearest-station'] if 'nearest-station' in dsj else -1)
     f.write(t+ '\n')
-    sun = datetime.fromtimestamp(rj['sys']['sunrise'])
+    sun = datetime.fromtimestamp(owj['sys']['sunrise'])
     t= "    Sunrise: {:f}".format(sun.hour+ (sun.minute+ (sun.second/60))/60)
-    sun = datetime.fromtimestamp(rj['sys']['sunset'])
+    sun = datetime.fromtimestamp(owj['sys']['sunset'])
     t+= ", Sunset: {:f}".format(sun.hour+ (sun.minute+ (sun.second/60))/60)
     f.write(t+ '\n')
     t= "hour, age, code, temp(F), humidity(%), wind(mph), dir(deg), skytemp, ambient, relay"
@@ -88,7 +112,7 @@ s+= " {0:6.1f}".format(wbj['ambient']) # SenT
 s+= " {0:6.1f}".format(dsj['currently']['windGust']) # Wind
 s+= " {0:3.0f}".format(100*dsj['currently']['humidity']) # Hum
 s+= " {0:6.1f}  50".format(dsj['currently']['dewPoint']) # DewPt, Hea
-s+= ""
+s+= "  {0:}".format(2 if wbj['relay']   else 0)      # rain based on wbox. It has a 15 min hysterisis
 f= open("bolt.txt", 'w')
 f.write(s)
 f.close() 
@@ -158,5 +182,34 @@ End Enum
 
 '''
 
+'''  open Weather
+{"coord":{"lon":-70.63,"lat":41.72}
+,"weather":[
+     {"id":500    ,"main":"Rain"   ,"description":"light rain"  ,"icon":"10n"}
+    ,{"id":701    ,"main":"Mist"   ,"description":"mist"        ,"icon":"50n"}]
+    ,"base":"stations"
+,"main":{"temp":44.69   ,"feels_like":27.95   ,"temp_min":42.01   ,"temp_max":46.99    ,"pressure":1008  ,"humidity":100}   ,"visibility":3219
+,"wind":{"speed":27.51,"deg":80,"gust":39.15}
+,"rain":{"1h":0.76}
+,"clouds":{"all":90},"dt":1587945716
+,"sys":{"type":1,"id":4119,"country":"US","sunrise":1587894304,"sunset":1587944106},"timezone":-14400,"id":4944405,"name":"Monument Beach"
+    ,"cod":200}
+'''
 
 
+
+#Climacell example
+'''
+{"lat":41.717,
+"lon":-70.633,
+"temp":{"value":72.5,"units":"F"},
+"dewpoint":{"value":69.13,"units":"F"},
+"wind_speed":{"value":11.88,"units":"mph"},
+"wind_gust":{"value":21.25,"units":"mph"},
+"baro_pressure":{"value":29.8124,"units":"inHg"},
+"humidity":{"value":89.06,"units":"%"},
+"wind_direction":{"value":213.69,"units":"degrees"},
+"cloud_cover":{"value":2.44,"units":"%"},
+"weather_code":{"value":"clear"},
+"observation_time":{"value":"2020-06-23T21:38:25.467Z"}}
+'''

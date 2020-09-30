@@ -1,3 +1,5 @@
+//  board selected: Arduino Mega or Mega 2560
+//
 // HTTP server offering readings from a Hydreon Rain Gauge Model RG-11 (i.e. the
 // relay state) and from a Melexis MLX90614 IR Sensor, used as a sky temperature
 // sensor; clouds are warmer than clear sky due to the water in them, so this
