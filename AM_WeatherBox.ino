@@ -13,7 +13,7 @@ EthernetWebServer server(ALPACA_PORT);
 int udpPort = ALPACA_DISCOVERY_PORT;
 EthernetUDP Udp;
 
-#define DRIVER_VERSION  21 // must be int  "0.2.1" // this code
+#define DRIVER_VERSION  22 // must be int  "0.2.1" // this code
 
 #include "alpaca.h"
 

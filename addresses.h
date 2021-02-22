@@ -110,5 +110,5 @@ struct Addresses : Printable {
   SaveableIPAddress ip;
   MacAddress mac;
 };
-#endif 0
+#endif // 0
 #endif  // SENSOR_ETHER_SERVER_ADDRESSES_H
