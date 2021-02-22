@@ -1,3 +1,4 @@
+#if 0
 #include "addresses.h"
 
 #include <EEPROM.h>
@@ -266,3 +267,5 @@ size_t Addresses::printTo(Print& p) const {
 bool Addresses::operator==(const Addresses& other) const {
   return ip == other.ip && mac == other.mac;
 }
+
+#endif 0

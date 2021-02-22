@@ -1,7 +1,7 @@
 #ifndef _JAMESSYNGE_ARDUINO_EXPERIMENTS_SIMPLE_HTTP_SERVER_H_
 #define _JAMESSYNGE_ARDUINO_EXPERIMENTS_SIMPLE_HTTP_SERVER_H_
-
-#include "Ethernet.h"
+#if 0
+//#include "Ethernet.h"
 #include "addresses.h"
 
 // Some chip select pin numbers:
@@ -39,9 +39,11 @@ public:
   // after reading the entire header, false otherwise.
   static bool skipHttpRequestHeader(EthernetClient* client);
 
+  static bool send(int code, String contenttype, String message);
+
 private:
   EthernetServer server_;
   bool using_dhcp_{false};
 };
-
+#endif  0
 #endif  // _JAMESSYNGE_ARDUINO_EXPERIMENTS_SIMPLE_HTTP_SERVER_H_

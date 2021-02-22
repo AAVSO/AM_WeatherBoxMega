@@ -21,10 +21,17 @@ looks like board power supply failed.
       the primary pins were physically blocked 
       
    rain sensor
-     brn  to gnd
-     blu  to 47   sense line
-     grn  out-
-     yel  out+
+     wire from    RG-        to the arduino  
+     brn          COM        arduino gnd  
+     blu          NO         47   sense line
+     grn          PWR2       return (gnd) of boost converter
+     yel          PWR1       12V of boost converter
+    swtich settings:   3 & 5 on
+       "It's raining" mode,  very sensitive,
+       output monostable, extended 15 minutes
+    For wire I used cat 5, which has 4 pairs. Ignore the white wire of each
+     pair and you have brn, blu, grn and yel   
+       
      
 Voltage plan:
   48V --(via ethernet)--(POE/megaboard)-- Vin is 9V  --- bump up board--  12V to rainsensor          

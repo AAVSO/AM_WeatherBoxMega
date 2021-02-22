@@ -1,3 +1,4 @@
+#if 0
 #include "simple_http_server.h"
 
 #include "addresses.h"
@@ -105,6 +106,12 @@ bool SimpleHttpServer::loop(ClientFunc handler) {
     if (!(client.getSocketNumber() == 4 && 
       Ethernet.hardwareStatus() == EthernetW5100)) {
       // Looks valid.
+
+
+
+
+
+      
       handler(&client);
 
       // Give the web browser time to receive the data.
@@ -148,3 +155,19 @@ bool SimpleHttpServer::skipHttpRequestHeader(EthernetClient* client) {
   // The connection was broken.
   return false;
 }
+
+/*
+  bool SimpleHttpServer::send(int code, String contenttype, String message) {
+  String cc;
+  switch(code) {
+    case 200: cc= "200 OK"; break;
+    case 400: cc= "400 Bad Request"; break;
+    default:  cc= "500 Internal Server Error";
+  }
+  client->println("HTTP/1.1 "+ cc);
+  client->println("Content-Type: "+ contenttype);
+  client->println(message);
+}
+*/
+
+#endif 0

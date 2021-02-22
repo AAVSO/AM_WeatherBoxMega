@@ -1,6 +1,6 @@
 #ifndef SENSOR_ETHER_SERVER_ADDRESSES_H
 #define SENSOR_ETHER_SERVER_ADDRESSES_H
-
+#if 0
 // Utilities for working with MAC and IP addresses.
 // Author: James Synge
 // Date: March, 2019
@@ -9,7 +9,7 @@
 
 #include <inttypes.h>
 
-#include "Ethernet.h"
+//#include "Ethernet.h"
 #include "eeprom_io.h"
 
 void printMACAddress(byte mac[6]);
@@ -110,5 +110,5 @@ struct Addresses : Printable {
   SaveableIPAddress ip;
   MacAddress mac;
 };
-
+#endif 0
 #endif  // SENSOR_ETHER_SERVER_ADDRESSES_H

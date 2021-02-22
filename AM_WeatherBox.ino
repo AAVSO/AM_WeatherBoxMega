@@ -1,3 +1,203 @@
+// notes at the bottom
+
+
+#include <Arduino.h>
+#include "defines.h" 
+
+#define ALPACA_PORT   80
+#define ALPACA_DISCOVERY_PORT  32227
+
+EthernetWebServer server(ALPACA_PORT);
+#include <EthernetUdp3.h> //<WiFiUdp.h>
+//todo  UDP Port can be edited in setup page
+int udpPort = ALPACA_DISCOVERY_PORT;
+EthernetUDP Udp;
+
+#define DRIVER_VERSION  21 // must be int  "0.2.1" // this code
+
+#include "alpaca.h"
+
+// Multicast DNS support, aka Apple's Bonjour protocol.
+// I've forked this library just so that I'm sure I can find it:
+// https://github.com/jamessynge/EthernetBonjour
+//#include <EthernetBonjour.h>
+
+// Library for reading from the MLX90614 IR Sensor.
+#include <SparkFunMLX90614.h>
+
+// Provides the seed for the standard random number generator.
+#include "jitter_random.h"
+
+// Generates, stores and loads MAC and IP address for the sketch.
+#include "addresses.h"
+
+// Pin hooked up to the RG-11 rain sensor's relay.
+constexpr int kRelayInputPin = 47;
+
+// Class instance for reading from the attached MLX90614 IR Sensor.
+IRTherm irTherm;
+
+// Name we'll advertise using mDNS (Apple's Bonjour protocol).
+//const char kMulticastDnsName[] = "rainsensor";
+
+
+
+void setup() {
+  Serial.begin(115200);
+  Serial.println("start setup");
+
+  pinMode(kRelayInputPin, INPUT_PULLUP); // internal input is adequate; lose the external pullup circuit
+
+  // Start talking to the IR sensor.
+  irTherm.begin();
+  irTherm.setUnit(TEMP_F);
+  if (irTherm.read() != 1) {
+    Serial.println("MLX90614 not found");
+  }
+
+  // Initialize the random number generator, just in case we need it for
+  // generating addresses when we call SimpleHttpServer::setup.
+  // Serial.print("Calling JitterRandom at ");
+  // Serial.println(millis());
+  //auto seed = JitterRandom::random32();
+  // Serial.print("JitterRandom returned at ");
+  // Serial.println(millis());
+  // Serial.print("seed=");
+  // Serial.print(seed);
+  // Serial.print(" (0x");
+  // Serial.print(seed, HEX);
+  // Serial.println(")");
+
+//  randomSeed(seed);
+
+  // As described on the freetronics website, there is a delay between the reset
+  // of the EtherTen board and the time when the Ethernet chip is allowed to
+  // operate. So we do some other stuff first (above), then delay a bit longer
+  // just to be sure that we don't attempt to initialize the Ethernet chip too
+  // soon. Waiting a few 100ms will not be a big deal in the life of the unit.
+  // To learn more, see:
+  //       https://www.freetronics.com.au/pages/usb-power-and-reset
+  delay(200);
+  
+  pinMode(7, INPUT_PULLUP); // ethernet needs this
+
+  // Initialize networking. Provide an "Organizationally Unique Identifier"
+  // that will be the first 3 bytes of the MAC addresses generated; this means
+  // that all boards running this sketch will share the first 3 bytes of their
+  // MAC addresses, which may help with locating them... though EthernetBonjour
+  // (mDNS) is our primary way of doing so.
+//  OuiPrefix oui_prefix(0x52, 0xC4, 0x55);
+//  if (!server.setup(&oui_prefix)) {
+//    announceFailure("Unable to initialize networking!");
+//  }
+
+//  if (!EthernetBonjour.begin(kMulticastDnsName)) {
+//    Serial.println("No mDNS! continuing");
+//  }
+
+ 
+ ET_LOGWARN3(F("Board :"), BOARD_NAME, F(", setCsPin:"), USE_THIS_SS_PIN);
+
+    // Use  MAX_SOCK_NUM = 4 for 4K, 2 for 8K, 1 for 16K RX/TX buffer
+    #ifndef ETHERNET3_MAX_SOCK_NUM
+      #define ETHERNET3_MAX_SOCK_NUM      4
+    #endif
+  Serial.println("here01");
+  
+    Ethernet.setCsPin (USE_THIS_SS_PIN);
+    Ethernet.init (ETHERNET3_MAX_SOCK_NUM);
+  Serial.println("here02");
+
+  
+    // You have to add initialization for your Custom Ethernet here
+    // This is just an example to setCSPin to USE_THIS_SS_PIN, and can be not correct and enough
+    Ethernet.init(USE_THIS_SS_PIN);
+    
+
+
+pinMode(7, INPUT_PULLUP); // ethernet needs this
+  Serial.println("here03");
+
+  // start the ethernet connection and the server:
+  // Use DHCP dynamic IP and random mac
+  uint16_t index = millis() % NUMBER_OF_MAC;
+  // Use Static IP
+  //Ethernet.begin(mac[index], ip);
+  
+  Ethernet.begin(mac[index]);
+  Serial.println("here04");
+
+  // Just info to know how to connect correctly
+  Serial.println(F("========================="));
+  Serial.println(F("Currently Used SPI pinout:"));
+  Serial.print(F("MOSI:"));
+  Serial.println(MOSI);
+  Serial.print(F("MISO:"));
+  Serial.println(MISO);
+  Serial.print(F("SCK:"));
+  Serial.println(SCK);
+  Serial.print(F("SS:"));
+  Serial.println(SS);
+#if USE_ETHERNET3
+  Serial.print(F("SPI_CS:"));
+  Serial.println(SPI_CS);
+#endif
+  Serial.println(F("========================="));
+
+  Serial.print(F("Using mac index = "));
+  Serial.println(index);
+
+  Serial.print(F("EthernetWebServer started @ IP address: "));
+  Serial.println(Ethernet.localIP());
+
+  // start the web server on port 80
+  server.begin();
+ 
+   alpaca_setup();
+
+  server.on("/", oldhandler);
+
+  //Starts the discovery responder server
+  Udp.begin( udpPort);
+
+  
+} //setup
+
+void oldhandler() {
+  String msg= "{\"relay\":"+ String((digitalRead(kRelayInputPin) == LOW) ? 0 : 1);
+  // On average it takes just over one millisecond to read from the IR sensor,
+  // so there is no need to do so periodically, (i.e. between client requests,
+  // with caching of the results). So we just try to read and return the
+  // results if we get them.
+  if (irTherm.read() == 1) {
+    msg+= ", \"object\":"+ String(irTherm.object(), 2)+ ", \"ambient\":"+ String(irTherm.ambient(),2);
+  }
+  msg+= "}";
+  server.send(200, "application/json", msg);
+}
+
+void loop() {
+  server.handleClient();
+  // If we've received an mDNS query for our name, respond. This must be called
+  // often in order for the mDNS feature to work, ideally once per loop.
+  //EthernetBonjour.run();
+  int udpBytesIn = Udp.parsePacket();
+  if( udpBytesIn > 0  ) 
+     handleDiscovery( udpBytesIn );
+}
+
+void announceFailure(const char* message) {
+  while (true) {
+    Serial.println(message);
+    delay(1000);
+  }
+}
+
+
+
+
+
+
 //  board selected: Arduino Mega or Mega 2560
 //
 // HTTP server offering readings from a Hydreon Rain Gauge Model RG-11 (i.e. the
@@ -143,138 +343,3 @@
 //
 //     Ideally you'll see the same kind of result as you saw earlier in the
 //     browser.
-
-#include <Arduino.h>
-
-// This is the Arduino "standard" Ethernet 2.0.0 library (or later).
-#include <Ethernet.h>
-
-// Multicast DNS support, aka Apple's Bonjour protocol.
-// I've forked this library just so that I'm sure I can find it:
-// https://github.com/jamessynge/EthernetBonjour
-#include <EthernetBonjour.h>
-
-// Library for reading from the MLX90614 IR Sensor.
-#include <SparkFunMLX90614.h>
-
-// My wrapper class for simplifying dealing with the Ethernet library.
-#include "simple_http_server.h"
-
-// Provides the seed for the standard random number generator.
-#include "jitter_random.h"
-
-// Generates, stores and loads MAC and IP address for the sketch.
-#include "addresses.h"
-
-// Pin hooked up to the RG-11 rain sensor's relay.
-constexpr int kRelayInputPin = 47;
-
-// Class instance for reading from the attached MLX90614 IR Sensor.
-IRTherm irTherm;
-
-// Name we'll advertise using mDNS (Apple's Bonjour protocol).
-const char kMulticastDnsName[] = "rainsensor";
-
-// Tell the Ethernet library to talk to the Ethernet chip using the
-// appropriate chip select pin, and to listen on port 80 for TCP connections.
-SimpleHttpServer server(kEthernetShieldCS, 80);
-
-void setup() {
-  Serial.begin(9600);
-
-  pinMode(kRelayInputPin, INPUT_PULLUP); // internal input is adequate; lose the external pullup circuit
-
-  // Start talking to the IR sensor.
-  irTherm.begin();
-  irTherm.setUnit(TEMP_F);
-  if (irTherm.read() != 1) {
-    Serial.println("MLX90614 not found");
-  }
-
-  // Initialize the random number generator, just in case we need it for
-  // generating addresses when we call SimpleHttpServer::setup.
-  // Serial.print("Calling JitterRandom at ");
-  // Serial.println(millis());
-  auto seed = JitterRandom::random32();
-  // Serial.print("JitterRandom returned at ");
-  // Serial.println(millis());
-  // Serial.print("seed=");
-  // Serial.print(seed);
-  // Serial.print(" (0x");
-  // Serial.print(seed, HEX);
-  // Serial.println(")");
-
-  randomSeed(seed);
-
-  // As described on the freetronics website, there is a delay between the reset
-  // of the EtherTen board and the time when the Ethernet chip is allowed to
-  // operate. So we do some other stuff first (above), then delay a bit longer
-  // just to be sure that we don't attempt to initialize the Ethernet chip too
-  // soon. Waiting a few 100ms will not be a big deal in the life of the unit.
-  // To learn more, see:
-  //       https://www.freetronics.com.au/pages/usb-power-and-reset
-  delay(200);
-  
-  pinMode(7, INPUT_PULLUP); // ethernet needs this
-
-  // Initialize networking. Provide an "Organizationally Unique Identifier"
-  // that will be the first 3 bytes of the MAC addresses generated; this means
-  // that all boards running this sketch will share the first 3 bytes of their
-  // MAC addresses, which may help with locating them... though EthernetBonjour
-  // (mDNS) is our primary way of doing so.
-  OuiPrefix oui_prefix(0x52, 0xC4, 0x55);
-  if (!server.setup(&oui_prefix)) {
-    announceFailure("Unable to initialize networking!");
-  }
-
-  if (!EthernetBonjour.begin(kMulticastDnsName)) {
-    Serial.println("No mDNS! continuing");
-  }
-}
-
-void clientHandler(EthernetClient* client) {
-  Serial.println("Got a client!!");
-
-  // Skip the request header, i.e. we give the same result regardless of the
-  // request, so really not much of a webserver!
-  server.skipHttpRequestHeader(client);
-
-  // Send a basic HTTP response header:
-  client->println("HTTP/1.1 200 OK");
-  client->println("Content-Type: application/json");
-  client->println();
-
-  client->print("{\"relay\":");
-  client->print((digitalRead(kRelayInputPin) == LOW) ? 0 : 1);
-
-  // On average it takes just over one millisecond to read from the IR sensor,
-  // so there is no need to do so periodically, (i.e. between client requests,
-  // with caching of the results). So we just try to read and return the
-  // results if we get them.
-  if (irTherm.read() == 1) {
-    client->print(", \"object\":");
-    client->print(irTherm.object());
-    client->print(", \"ambient\":");
-    client->print(irTherm.ambient());
-  }
-
-  client->println("}");
-  client->println();
-}
-
-void loop() {
-  // If we've received an mDNS query for our name, respond. This must be called
-  // often in order for the mDNS feature to work, ideally once per loop.
-  EthernetBonjour.run();
-
-  // If there is a client, pass it to clientHandler;
-  // also maintain our DHCP lease.
-  server.loop(clientHandler);
-}
-
-void announceFailure(const char* message) {
-  while (true) {
-    Serial.println(message);
-    delay(1000);
-  }
-}
